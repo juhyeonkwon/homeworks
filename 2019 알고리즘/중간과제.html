@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8" >
+
+<style>
+
+#myCanvas {
+    background-color:azure;
+    border : 1px solid black;
+}
+
+</style>
+
+
+</head>
+
+<body>
+
+<canvas id="myCanvas", width="600px" height="600px"> </canvas>
+
+<p id="count" ></p>
+
+<button id="button" value="시작" >시작</button>
+<button id="next">다음</button>
+
+
+<p id="cross"></p>
+
+<p id="stack"></p>
+
+
+</body>
+
+
+<script>
+
+/*
+ * 전역변수들 정의
+ */
+
+
+//좌표값을 저장하는 배열
+let position = new Array();    //이 배열안에 각각 좌표를 담고있는 객체가 저장된다.
+let number = 0;
+
+
+
+//선의 정보를 저장하는 배열
+let lineArr = new Array();
+let lineNum = 0;
+
+//경로를 저장하는 배열
+let stack = new Array();            //임시적인 좌표를 저장하는 배열
+let positionStack = new Array();    //stack에서 좌표값 객체를 뽑아와서 저장합니다
+
+let bool = new Array();             //visit or not
+let case_count = 0;
+
+
+//-END-
+
+/*
+ * 그래픽을 위한 함수선언과 변수 정의
+ */
+
+const canvas = document.getElementById("myCanvas");
+const ctx = canvas.getContext("2d");
+
+
+//canvas 상에 click 이벤트가 발생시 clickEvent함수를 실행
+document.getElementById("myCanvas").addEventListener("click", clickEvent);
+
+function clickEvent(e) {
+    if(number < 5) {
+        let xVal = e.offsetX;       //마우스 위치의 x값을 가져옴
+        let yVal = e.offsetY;       //마우스 위치의 y값을 가져옴
+
+        position[number] = {
+            x : xVal,
+            y : yVal,
+        }
+
+        drawDot(xVal, yVal);           
+
+        number++;
+
+        document.getElementById("count").innerHTML = number;
+    }
+
+}
+
+//마우스 클릭시 점을찍는 함수
+function drawDot(x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fillstyle = "blue";
+    ctx.fill();
+    ctx.closePath();
+}
+
+//라인을 그리는 함수
+function drawLine(case_num, i, j) {
+    ctx.beginPath();
+    ctx.moveTo(positionStack[case_num][i].x, positionStack[case_num][i].y);
+    ctx.lineTo(positionStack[case_num][j].x, positionStack[case_num][j].y);
+    ctx.stroke();
+    ctx.closePath();
+    
+    //선의 정보를 저장합니다...
+    lineArr[lineNum] = {
+        x1 : positionStack[case_num][i].x,
+        y1 : positionStack[case_num][i].y,
+        x2 : positionStack[case_num][j].x,
+        y2 : positionStack[case_num][j].y
+    }
+
+    console.log(lineArr[lineNum]);
+
+    lineNum++;   
+    
+}
+
+//그래픽을 위한 함수선언과 변수 정의 -END-
+
+
+// 시작 버튼과 다음 버튼을 클릭할 때에 일어나는 이벤트에 대한 리스너
+document.getElementById("button").addEventListener("click", initfindAllPath);
+document.getElementById("next").addEventListener("click", initstartDrawLine);
+
+// 이벤트 리스너 끝
+
+/*
+ * 가능한 모든 경로를 찾습니다. 경로를 찾은뒤 선을 그어보고 선이 cross 한다면 다음 값으로 넘어가게 했습니다.
+ */
+
+
+ //시작 버튼을 누룰시에 경로를 찾습니다.
+function initfindAllPath() {
+    findAllPath(0);
+}
+
+function findAllPath(num) {
+    let k = 0;
+
+    //만약 num이 점의 갯수보다 많다면 찾은 경로들을 모두 스택에 저장한다.
+    if(num >= position.length) {       
+        positionStack[case_count] = new Array();
+        for(k; k < position.length; k++) {
+            positionStack[case_count][k] = stack[k];
+            console.log(positionStack[case_count][k]);
+        }        
+        case_count++;            
+
+        console.log("count의 값은 : "  + case_count);
+        return;
+    } 
+
+    let j = 0;         
+    for(j; j < position.length; j++) {
+        if(!bool[j]) {
+            stack[num] = position[j];
+            bool[j] = true;
+            findAllPath(num + 1);        
+            bool[j] = false;
+        }
+    }
+
+}
+
+//경로찾는 함수 끝
+
+
+
+/*
+ * 찾은 경로값을 토대로 라인을 그립니다. 라인을 그릴시엔 선이 교차가 되는지 확인을 합니다.
+ */
+
+//케이스 값을 나타내는 전역변수 입니다.
+let drawNum = 0;
+
+function initstartDrawLine() {
+    
+    setBegin();
+
+    //선을 그립니다.
+    startDrawLine(drawNum);
+    drawNum++;    
+
+    //만약 모든 케이스를 통과했다면 다시 처음부터 갑니다.
+    if(drawNum == case_count) {
+        drawNum = 0;
+    }
+    
+}
+
+function startDrawLine(case_number) {
+    console.log("draw Line!");
+    for( i = 0; i <  positionStack[case_number].length - 1; i++) {
+        drawLine(case_number, i, i+1);
+    }  
+
+    //만약에 선이 교차하는게 있다면 바로 다음케이스로 넘어가게 합니다.
+    if(isCross()) {
+
+        setBegin();                 //화면을 초기화를 합니다
+        lineNum = 0;                //선 값을 초기화 합니다
+        drawNum++;                  //Num값을 1증가시켜 다음 케이스를 실행하게 합니다
+        startDrawLine(drawNum);
+    }
+
+    lineNum = 0;                    //다 그렸으면 선 값을 0으로 초기화합니다..    
+
+}
+
+//라인 그리는것 끝.
+
+
+
+//화면을 초기화, 점만 있게 해주는 함수
+function setBegin() {
+    //화면 다 지워줍니다.
+    ctx.clearRect(0,0, canvas.width, canvas.height);
+
+    //점을 다시 그려줍니다.
+    for(i = 0; i < position.length; i++) {
+        drawDot(position[i].x, position[i].y);
+    }
+}
+
+
+/*
+두선이 교차하는지 체크하는 식
+f1 = (y21-y11)(x12-x11) - (x21-x11)(y12-y11) 
+f2 = (y22-y11)(x12-x11) - (x22-x11)(y12-y11) 
+if f1*f2 <0 then 교차!
+*/
+
+//선을 그을때 선사이에 라인이있는지 검사하는함수
+function isCross() {
+
+    let line = 0;
+    let f1, f2, value;
+
+    for(line = 0; line < lineArr.length - 1; line++) {     
+        for(i = 0; i < lineArr.length; i++) {
+
+            if(lineArr[i] === lineArr[line]) {
+                continue;
+            }
+
+            f1 = (lineArr[line].x2 - lineArr[line].x1) * (lineArr[i].y1 - lineArr[line].y1) - (lineArr[line].y2 - lineArr[line].y1) * (lineArr[i].x1 - lineArr[line].x1);
+            f2 = (lineArr[line].x2 - lineArr[line].x1) * (lineArr[i].y2 - lineArr[line].y1) - (lineArr[line].y2 - lineArr[line].y1) * (lineArr[i].x2 - lineArr[line].x1);
+            
+            value = f1 * f2;
+            //선이 교차하는게 있다는것..
+            if(value < 0) {
+                return true;
+            }
+        }
+    }
+    return false;    
+}
+
+
+
+
+</script>
+
+
+
+
+</html>
