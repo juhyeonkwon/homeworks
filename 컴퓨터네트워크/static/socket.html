@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Socket IO</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <style>
+        #video {
+  border: 1px solid #999;
+  width: 98%;
+  max-width: 860px;
+}   
+
+
+    </style>
+</head>
+
+
+<body>
+
+<div class="container">
+    <h3>Socket.io Chat Example</h3>
+    <form class="form-inline">
+        <div class="form-group">
+            <label for="msgForm">Message: </label>
+            <input type="text" class="form-control" id="msgForm">
+        </div>
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+    <div id="chatLogs"></div>
+
+    <button  class="btn btn-primary" id="start">시작</button>
+    <button  class="btn btn-primary" id="stop">종료</button>
+
+    <video id="video" autoplay></video>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+let socket = io('58.122.247.48:3000');
+
+socket.emit("login", {
+    name : makeRandomName(),
+    user_id : "helo@helo.com"
+});
+
+socket.on("login", function(data) {
+    $('#chatLogs').append("<div><strong>" + data + "</strong> has joined</div>");
+});
+
+
+socket.on("chat", function(data) {
+    $('#chatLogs').append("<div>" + data.from.name + " : <strong>" + data.msg + "</strong></div>");
+});
+
+// Send 버튼이 클릭되면
+$("form").submit(function(e) {
+      e.preventDefault();
+      var $msgForm = $("#msgForm");
+
+      // 서버로 메시지를 전송한다.
+      socket.emit("chat", { msg: $msgForm.val() });
+      $msgForm.val("");
+});
+
+function makeRandomName(){
+      var name = "";
+      var possible = "abcdefghijklmnopqrstuvwxyz";
+      for( var i = 0; i < 3; i++ ) {
+        name += possible.charAt(Math.floor(Math.random() * possible.length));
+      }
+      return name;
+ }
+
+
+const videoElem = document.getElementById("video");
+const startElem = document.getElementById("start");
+const stopElem = document.getElementById("stop");
+
+// Options for getDisplayMedia()
+
+var displayMediaOptions = {
+  video: {
+    cursor: "always"
+  },
+  audio: false
+};
+
+// Set event listeners for the start and stop buttons
+startElem.addEventListener("click", function(evt) {
+  startCapture();
+}, false);
+
+async function startCapture() {
+  try {
+    videoElem.srcObject = await navigator.mediaDevices.getDisplayMedia();
+    dumpOptionsInfo();
+  } catch(err) {
+    console.error("Error: " + err);
+  }
+}
+
+stopElem.addEventListener("click", function(evt) {
+  stopCapture();
+}, false);
+
+function stopCapture(evt) {
+  let tracks = videoElem.srcObject.getTracks();
+
+  tracks.forEach(track => track.stop());
+  videoElem.srcObject = null;
+}
+
+</script>
+
+</body>
+
+
+
+</html>

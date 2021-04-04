@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Socket IO</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+
+    <style>
+  video {
+  border: 1px solid #999;
+  width: 1028px;
+  max-width: 860px;
+}   
+
+canvas {
+  width : 50%;
+}
+
+
+    </style>
+</head>
+
+
+<body>
+  <div id="container">
+
+    <video playsinline autoplay></video> <br/>
+    <button id="buttonCapture" class="btn btn-primary">캡쳐 하기</button> <br />
+    <canvas id="myCanvas"></canvas>
+
+
+</div>
+
+<script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+<script src="./host.js" async></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script src="socket.io-client/dist/socket.io.js"></script>
+
+
+
+
+<div class="form-inline">
+  <button type="submit" class="btn btn-primary" id="start">공유 시작</button>
+</div>
+
+
+<script>
+let socket = io('58.122.247.48:3000');
+
+
+function getUrlParams() {
+    let params = {};
+    window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(str, key, value) { params[key] = value; });
+    return params;
+}
+
+// Send 버튼이 클릭되면
+$("#start").click(function(e) {
+      e.preventDefault();
+      var $msgForm = $("#msgForm");
+
+      let params = getUrlParams();
+
+      // 서버로 메시지를 전송한다.
+      socket.emit("chat", { msg: $msgForm.val() });
+      $msgForm.val("");
+      let canvas = document.getElementById('myCanvas').toDataURL('image/jpeg', 1);
+      console.log(canvas);
+      socket.emit('change', {room : params.room, canvas : canvas});
+
+      //화면 공유 정지
+      stopCapture();
+
+      setTimeout(function() {
+        location.href = "./get_canvas.html?room=" + params.room;
+      }, 100)
+});
+
+
+function stopCapture() {
+  let video = document.querySelector('video');
+
+  let tracks = video.srcObject.getTracks();
+
+  tracks.forEach(track => track.stop());
+  video.srcObject = null;
+
+}
+
+
+</script>
+
+</body>
+
+
+
+</html>

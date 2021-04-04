@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+
+        <style>
+            #myCanvas{
+                border : 1px solid black;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div class="contaner">
+            <canvas id="myCanvas">
+
+            </canvas>
+
+            <br/>
+
+            <button id="change" onclick="change()"class="btn btn-primary">화면 바꾸기</button>
+
+        </div>
+
+
+        <script>
+            
+            //소켓을 불러옵니다..
+            let socket = io('58.122.247.48:3000');
+
+            let canvas = document.getElementById('myCanvas');
+            let ctx = canvas.getContext('2d');
+
+            let params = getUrlParams(); //url로부터 room의 정보를 가져옵니다
+
+            //서버에 접속했다고 전달합니다.
+            console.log('서버 전달')
+            socket.emit('get_canvas', {room : params.room});
+
+            // 서버로부터 get_canvas메세지를 전달받으면 실행되는 함수입니다
+            socket.on('get_canvas', function(data){
+                console.log('get_canvas_canvas')
+
+                //방이 만들어져있지 않은 경우에는 뒤로가기를 하게 합니다.
+                if(data.location === undefined) {
+                    alert('생성되어 있지 않은 방입니다..');
+                    history.go(-1);            
+                }
+
+                console.log(data.location);
+
+                var img = new Image;
+
+                let temp = new Image;
+                img.src = data.canvas_data;
+
+
+                canvas.width = 1920
+                canvas.height = 1280
+
+                img.onload = function(){
+                    ctx.drawImage(img, 0,0); // Or at whatever offset you like
+                };
+
+                console.log(data)
+
+                setTimeout(function () {
+                //미리 저장되어 있는 선들을 그립니다. 
+                for( let i = 0; i < data.location.length; i++) {
+                    ctx.beginPath();
+                    ctx.arc(data.location[i].x, data.location[i].y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = 'red';
+                    ctx.fill();
+                    ctx.closePath();
+                }
+                }, 100);
+
+        
+                
+            });
+
+
+            //마우스를 가져다대서 움직일시 선이 그어지게 만듭니다..
+            let isMouseClick = false;
+
+            document.getElementById("myCanvas").addEventListener("mousedown", mouseDown);
+            document.getElementById("myCanvas").addEventListener("mouseup", mouseUp);
+            document.getElementById("myCanvas").addEventListener("mousemove", mouseMove);
+
+            function mouseDown(e){
+                isMouseClick = true;
+            }
+
+            function mouseUp(e){
+                isMouseClick = false;
+            }
+
+            function mouseMove(e) {
+                if(isMouseClick) {
+                    let xVal = e.offsetX;       //마우스 위치의 x값을 가져옴
+                    let yVal = e.offsetY;       //마우스 위치의 y값을 가져옴
+                    
+                    //서버에 좌표값을 전달 합니다
+                    socket.emit('send_location', { x : xVal, y : yVal, room : params.room});
+
+                    ctx.beginPath();
+                    ctx.arc(xVal, yVal, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = 'red';
+                    ctx.fill();
+                    ctx.closePath();
+                }
+            } 
+
+
+
+            //서버에서 좌표값을 받을때 그 좌표값에 대해 캔버스에 선을 그립니다
+            socket.on('send_location', function(data) {
+                console.log('send')
+                let x = data.x;
+                let y = data.y;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+                ctx.closePath();
+            });
+
+
+            //change
+            socket.on('change', function(data){
+                console.log('change canvas')
+                ctx.clearRect(0,0, canvas.with, canvas.height);
+
+                var img = new Image;
+
+                let temp = new Image;
+                img.src = data.canvas;
+
+                canvas.width = 1920
+                canvas.height = 1280
+
+                img.onload = function(){
+                    ctx.drawImage(img, 0,0); // Or at whatever offset you like
+                };
+                
+                //미리 저장되어 있는 선들을 그립니다. 
+                
+                setTimeout(function () {
+                //미리 저장되어 있는 선들을 그립니다. 
+                   for( let i = 0; i < data.location.length; i++) {
+                        ctx.beginPath();
+                        ctx.arc(data.location[i].x, data.location[i].y, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = 'red';
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }, 100);
+
+
+            });
+
+            socket.on('over', function(data){
+                alert('인원이 초과되었습니다');
+                history.go(-1);
+            });
+
+            //화면 바꾸기 페이지로 넘어가게 합니다.
+            function change() {
+                location.href = "./change.html?room=" + params.room;
+            }
+
+
+                        
+            //파라미터값을 가져옵니다 room = ?    
+            function getUrlParams() {
+                let params = {};
+                window.location.search.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(str, key, value) { params[key] = value; });
+                return params;
+            }
+
+        </script>
+    </body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Main Page</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        .container{
+          padding-top : 10%;
+            text-align: center;
+            width: 100%; height: 100vh; 
+        }
+
+        .container button {
+          margin-right : 1%;
+        }
+
+        #table {
+          margin-left : 40%;
+          width: 20%;
+        }
+    </style>
+</head>
+
+
+<body>
+  <div class="container">
+    <br /> <br/>
+    <button class="btn btn-primary" onclick="host();">호스트 하기</button>
+    <button class="btn btn-success" onclick="join();">접속 하기</button>
+    <br /> <br>
+    <div>
+      
+      <table class="table" id="table">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <td>현재 생성되어 있는 방</td>
+            <td>인원</td>
+          </tr>
+        </thead>
+        <tbody id="tbody">         
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function host() {
+      location.href = "./host.html";
+    }
+
+    function join() {
+      let room = prompt("접속할 방을 입력하세요.(영어)");
+      location.href = "./get_canvas.html?room=" + room;
+    }
+
+    //소켓에 접속을 합니다.
+    let socket = io('58.122.247.48:3000');
+
+    //소켓에게 index 페이지에 접속을 했다고 전달합니다.
+    socket.emit('index');
+
+    //서버로 부터 요청에대한 답을 받습니다.
+    socket.on('index', function(data) {
+      console.log(data);
+      let room_cnt = data.room_cnt;
+
+      for(let i = 0; i < data.cur_rooms.length; i++) {
+        $('#tbody').append("<tr> <th scope=\"row\">" + (i+1) + "</th><td>" + data.cur_rooms[i] + "</td><td>" + room_cnt[i] + "</td></tr>");
+      }
+    });
+
+  </script>
+
+<script>
+
+</script>
+
+</body>
+
+
+
+</html>
